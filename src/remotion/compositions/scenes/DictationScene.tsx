@@ -16,7 +16,6 @@ const { fontFamily: figtree } = loadFigtree("normal", {
 });
 
 const TEAL = "#034F46";
-const LAVENDER = "#F0D7FF";
 
 const SPOKEN_TEXT =
   "hey so I was thinking we could maybe move the meeting to like Thursday or Friday that would work better for everyone I think";
@@ -96,43 +95,47 @@ export const DictationScene: React.FC = () => {
     };
   });
 
-  // Soundwave bars
-  const bars = Array.from({ length: 24 }, (_, i) => {
-    const phase = (frame / fps) * 4 + i * 0.4;
-    const isActive = frame >= typeStart && rawCharsToShow < SPOKEN_TEXT.length;
-    const height = isActive
-      ? 4 +
-        Math.abs(Math.sin(phase)) * 20 +
-        Math.abs(Math.cos(phase * 1.7)) * 10
+  // Soundwave bars — high contrast teal with dynamic heights
+  const isTyping = frame >= typeStart && rawCharsToShow < SPOKEN_TEXT.length;
+  const bars = Array.from({ length: 32 }, (_, i) => {
+    const phase = (frame / fps) * 4 + i * 0.35;
+    const height = isTyping
+      ? 6 +
+        Math.abs(Math.sin(phase)) * 18 +
+        Math.abs(Math.cos(phase * 1.7)) * 8
       : 4;
-    return height;
+    // Vary opacity from center outward for a flowing feel
+    const centerDist = Math.abs(i - 16) / 16;
+    const barOpacity = isTyping
+      ? 0.35 + (1 - centerDist) * 0.55
+      : 0.2;
+    return { height, opacity: barOpacity };
   });
 
-  // Smoothly shift the whole group upward as the polished bubble appears
-  const showPolished = frame >= transformFrame;
-  const shiftUp = spring({
+  // Polished section height animation for smooth expand
+  const expandProgress = spring({
     frame,
     fps,
     delay: transformFrame,
-    config: { damping: 200 },
-    durationInFrames: 30,
+    config: { damping: 14, stiffness: 60 },
   });
-  // Before polished bubble: natural center (0 offset)
-  // After: shift UP to compensate for the new content expanding below
-  const groupOffsetY = interpolate(shiftUp, [0, 1], [0, -140]);
+
+  // The polished section adds ~250px of content. Shift up by half to keep centered.
+  const centerShift = interpolate(expandProgress, [0, 1], [0, -125]);
 
   return (
     <AbsoluteFill>
-      {/* Single centered container */}
-      <AbsoluteFill
+      {/* Centered container with dynamic vertical offset */}
+      <div
         style={{
+          position: "absolute",
+          top: "50%",
+          left: 120,
+          right: 120,
+          transform: `translateY(calc(-50% + ${centerShift}px))`,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
-          paddingLeft: 120,
-          paddingRight: 120,
-          transform: `translateY(${groupOffsetY}px)`,
         }}
       >
         {/* Section label */}
@@ -141,7 +144,7 @@ export const DictationScene: React.FC = () => {
             textAlign: "center",
             opacity: labelProgress,
             transform: `translateY(${interpolate(labelProgress, [0, 1], [20, 0])}px)`,
-            marginBottom: 16,
+            marginBottom: 14,
           }}
         >
           <TextAnimation
@@ -170,30 +173,30 @@ export const DictationScene: React.FC = () => {
           </TextAnimation>
         </div>
 
-        {/* Voice waveform */}
+        {/* Voice waveform - high contrast teal bars */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: 3,
-            height: 40,
-            marginBottom: 24,
-            opacity: interpolate(frame, [12, 20], [0, 0.6], {
+            gap: 4,
+            height: 44,
+            marginBottom: 28,
+            opacity: interpolate(frame, [12, 22], [0, 1], {
               extrapolateLeft: "clamp",
               extrapolateRight: "clamp",
             }),
           }}
         >
-          {bars.map((h, i) => (
+          {bars.map((bar, i) => (
             <div
               key={i}
               style={{
-                width: 3,
-                height: h,
-                borderRadius: 1.5,
-                backgroundColor: LAVENDER,
-                opacity: 0.8,
+                width: 3.5,
+                height: bar.height,
+                borderRadius: 2,
+                backgroundColor: TEAL,
+                opacity: bar.opacity,
               }}
             />
           ))}
@@ -281,12 +284,12 @@ export const DictationScene: React.FC = () => {
           </div>
         </div>
 
-        {/* Transform sparkle + polished bubble: collapse height when hidden */}
+        {/* Transform sparkle + polished bubble: animated expand */}
         <div
           style={{
             overflow: "hidden",
-            maxHeight: showPolished ? 400 : 0,
-            opacity: showPolished ? 1 : 0,
+            // Animate max-height smoothly using spring
+            maxHeight: interpolate(expandProgress, [0, 1], [0, 350]),
             width: "100%",
             maxWidth: 800,
             display: "flex",
@@ -319,7 +322,7 @@ export const DictationScene: React.FC = () => {
                   width: 6,
                   height: 6,
                   borderRadius: "50%",
-                  backgroundColor: i % 2 === 0 ? LAVENDER : TEAL,
+                  backgroundColor: i % 2 === 0 ? "#F0D7FF" : TEAL,
                   opacity: p.opacity,
                   transform: `translate(${p.x - 3}px, ${p.y - 3}px) scale(${p.scale})`,
                 }}
@@ -413,7 +416,7 @@ export const DictationScene: React.FC = () => {
             </div>
           </div>
         </div>
-      </AbsoluteFill>
+      </div>
     </AbsoluteFill>
   );
 };
