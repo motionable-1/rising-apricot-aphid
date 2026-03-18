@@ -184,61 +184,65 @@ export const FeaturesScene: React.FC = () => {
 
   return (
     <AbsoluteFill>
-      {/* Title */}
-      <div
+      {/* Single centered flex container for title + cards */}
+      <AbsoluteFill
         style={{
-          position: "absolute",
-          top: 70,
-          left: 0,
-          right: 0,
-          textAlign: "center",
-          opacity: titleProgress,
-          transform: `translateY(${interpolate(titleProgress, [0, 1], [20, 0])}px)`,
-        }}
-      >
-        <TextAnimation
-          startFrom={0}
-          createTimeline={({ textRef, tl, SplitText }) => {
-            const split = new SplitText(textRef.current, { type: "words" });
-            tl.from(split.words, {
-              opacity: 0,
-              y: 25,
-              duration: 0.5,
-              stagger: 0.08,
-              ease: "power3.out",
-            });
-            return tl;
-          }}
-          style={{
-            fontFamily: garamond,
-            fontSize: 48,
-            fontWeight: 600,
-            color: TEAL,
-            letterSpacing: "-0.01em",
-          }}
-        >
-          Why Flow Changes Everything
-        </TextAnimation>
-      </div>
-
-      {/* Feature cards */}
-      <div
-        style={{
-          position: "absolute",
-          top: 200,
-          left: 0,
-          right: 0,
           display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
           justifyContent: "center",
-          gap: 32,
           paddingLeft: 60,
           paddingRight: 60,
+          gap: 0,
         }}
       >
-        {features.map((feature, i) => (
-          <FeatureCard key={i} feature={feature} index={i} />
-        ))}
-      </div>
+        {/* Title */}
+        <div
+          style={{
+            textAlign: "center",
+            opacity: titleProgress,
+            transform: `translateY(${interpolate(titleProgress, [0, 1], [20, 0])}px)`,
+            marginBottom: 48,
+          }}
+        >
+          <TextAnimation
+            startFrom={0}
+            createTimeline={({ textRef, tl, SplitText }) => {
+              const split = new SplitText(textRef.current, { type: "words" });
+              tl.from(split.words, {
+                opacity: 0,
+                y: 25,
+                duration: 0.5,
+                stagger: 0.08,
+                ease: "power3.out",
+              });
+              return tl;
+            }}
+            style={{
+              fontFamily: garamond,
+              fontSize: 48,
+              fontWeight: 600,
+              color: TEAL,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Why Flow Changes Everything
+          </TextAnimation>
+        </div>
+
+        {/* Feature cards - in a row */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 32,
+          }}
+        >
+          {features.map((feature, i) => (
+            <FeatureCard key={i} feature={feature} index={i} />
+          ))}
+        </div>
+      </AbsoluteFill>
     </AbsoluteFill>
   );
 };

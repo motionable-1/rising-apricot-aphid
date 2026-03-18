@@ -18,8 +18,10 @@ const { fontFamily: figtree } = loadFigtree("normal", {
 const TEAL = "#034F46";
 const LAVENDER = "#F0D7FF";
 
-const SPOKEN_TEXT = "hey so I was thinking we could maybe move the meeting to like Thursday or Friday that would work better for everyone I think";
-const POLISHED_TEXT = "I'd like to suggest moving the meeting to Thursday or Friday — that would work better for everyone.";
+const SPOKEN_TEXT =
+  "hey so I was thinking we could maybe move the meeting to like Thursday or Friday that would work better for everyone I think";
+const POLISHED_TEXT =
+  "I'd like to suggest moving the meeting to Thursday or Friday — that would work better for everyone.";
 
 export const DictationScene: React.FC = () => {
   const frame = useCurrentFrame();
@@ -50,7 +52,8 @@ export const DictationScene: React.FC = () => {
     Math.max(0, Math.floor((frame - typeStart) * charsPerFrame))
   );
   const rawVisible = SPOKEN_TEXT.slice(0, rawCharsToShow);
-  const rawCursorVisible = frame >= typeStart && rawCharsToShow < SPOKEN_TEXT.length;
+  const rawCursorVisible =
+    frame >= typeStart && rawCharsToShow < SPOKEN_TEXT.length;
 
   // Transformation sparkle moment
   const transformFrame = 85;
@@ -93,88 +96,34 @@ export const DictationScene: React.FC = () => {
     };
   });
 
-  // Soundwave bars at top
+  // Soundwave bars
   const bars = Array.from({ length: 24 }, (_, i) => {
     const phase = (frame / fps) * 4 + i * 0.4;
     const isActive = frame >= typeStart && rawCharsToShow < SPOKEN_TEXT.length;
     const height = isActive
-      ? 4 + Math.abs(Math.sin(phase)) * 20 + Math.abs(Math.cos(phase * 1.7)) * 10
+      ? 4 +
+        Math.abs(Math.sin(phase)) * 20 +
+        Math.abs(Math.cos(phase * 1.7)) * 10
       : 4;
     return height;
   });
 
+  // Smoothly shift the whole group upward as the polished bubble appears
+  const showPolished = frame >= transformFrame;
+  const shiftUp = spring({
+    frame,
+    fps,
+    delay: transformFrame,
+    config: { damping: 200 },
+    durationInFrames: 30,
+  });
+  // Before polished bubble: natural center (0 offset)
+  // After: shift UP to compensate for the new content expanding below
+  const groupOffsetY = interpolate(shiftUp, [0, 1], [0, -140]);
+
   return (
     <AbsoluteFill>
-      {/* Section label */}
-      <div
-        style={{
-          position: "absolute",
-          top: 60,
-          left: 0,
-          right: 0,
-          textAlign: "center",
-          opacity: labelProgress,
-          transform: `translateY(${interpolate(labelProgress, [0, 1], [20, 0])}px)`,
-        }}
-      >
-        <TextAnimation
-          startFrom={0}
-          createTimeline={({ textRef, tl, SplitText }) => {
-            const split = new SplitText(textRef.current, { type: "chars" });
-            tl.from(split.chars, {
-              opacity: 0,
-              y: 15,
-              duration: 0.4,
-              stagger: 0.03,
-              ease: "power2.out",
-            });
-            return tl;
-          }}
-          style={{
-            fontFamily: figtree,
-            fontSize: 16,
-            fontWeight: 600,
-            color: TEAL,
-            letterSpacing: "0.15em",
-            textTransform: "uppercase" as const,
-          }}
-        >
-          Seamless Voice Dictation
-        </TextAnimation>
-      </div>
-
-      {/* Voice waveform */}
-      <div
-        style={{
-          position: "absolute",
-          top: 110,
-          left: "50%",
-          transform: "translateX(-50%)",
-          display: "flex",
-          alignItems: "center",
-          gap: 3,
-          height: 40,
-          opacity: interpolate(frame, [12, 20], [0, 0.6], {
-            extrapolateLeft: "clamp",
-            extrapolateRight: "clamp",
-          }),
-        }}
-      >
-        {bars.map((h, i) => (
-          <div
-            key={i}
-            style={{
-              width: 3,
-              height: h,
-              borderRadius: 1.5,
-              backgroundColor: LAVENDER,
-              opacity: 0.8,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Main content area */}
+      {/* Single centered container */}
       <AbsoluteFill
         style={{
           display: "flex",
@@ -183,9 +132,73 @@ export const DictationScene: React.FC = () => {
           justifyContent: "center",
           paddingLeft: 120,
           paddingRight: 120,
-          gap: 24,
+          transform: `translateY(${groupOffsetY}px)`,
         }}
       >
+        {/* Section label */}
+        <div
+          style={{
+            textAlign: "center",
+            opacity: labelProgress,
+            transform: `translateY(${interpolate(labelProgress, [0, 1], [20, 0])}px)`,
+            marginBottom: 16,
+          }}
+        >
+          <TextAnimation
+            startFrom={0}
+            createTimeline={({ textRef, tl, SplitText }) => {
+              const split = new SplitText(textRef.current, { type: "chars" });
+              tl.from(split.chars, {
+                opacity: 0,
+                y: 15,
+                duration: 0.4,
+                stagger: 0.03,
+                ease: "power2.out",
+              });
+              return tl;
+            }}
+            style={{
+              fontFamily: figtree,
+              fontSize: 16,
+              fontWeight: 600,
+              color: TEAL,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase" as const,
+            }}
+          >
+            Seamless Voice Dictation
+          </TextAnimation>
+        </div>
+
+        {/* Voice waveform */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 3,
+            height: 40,
+            marginBottom: 24,
+            opacity: interpolate(frame, [12, 20], [0, 0.6], {
+              extrapolateLeft: "clamp",
+              extrapolateRight: "clamp",
+            }),
+          }}
+        >
+          {bars.map((h, i) => (
+            <div
+              key={i}
+              style={{
+                width: 3,
+                height: h,
+                borderRadius: 1.5,
+                backgroundColor: LAVENDER,
+                opacity: 0.8,
+              }}
+            />
+          ))}
+        </div>
+
         {/* Raw speech bubble */}
         <div
           style={{
@@ -202,7 +215,6 @@ export const DictationScene: React.FC = () => {
               gap: 16,
             }}
           >
-            {/* Mic icon */}
             <div
               style={{
                 width: 44,
@@ -221,8 +233,6 @@ export const DictationScene: React.FC = () => {
                 style={{ width: 22, height: 22 }}
               />
             </div>
-
-            {/* Speech bubble */}
             <div
               style={{
                 backgroundColor: "white",
@@ -243,7 +253,7 @@ export const DictationScene: React.FC = () => {
                   minHeight: 50,
                 }}
               >
-                "{rawVisible}
+                &ldquo;{rawVisible}
                 {rawCursorVisible && (
                   <span
                     style={{
@@ -254,7 +264,7 @@ export const DictationScene: React.FC = () => {
                     |
                   </span>
                 )}
-                {rawCharsToShow >= SPOKEN_TEXT.length ? '"' : ""}
+                {rawCharsToShow >= SPOKEN_TEXT.length ? "\u201D" : ""}
               </div>
               <div
                 style={{
@@ -265,128 +275,140 @@ export const DictationScene: React.FC = () => {
                   opacity: rawCharsToShow > 0 ? 0.6 : 0,
                 }}
               >
-                🎤 Speaking...
+                Speaking...
               </div>
             </div>
           </div>
         </div>
 
-        {/* Transform arrow */}
+        {/* Transform sparkle + polished bubble: collapse height when hidden */}
         <div
           style={{
-            opacity: arrowOpacity,
-            transform: `rotate(${arrowRotation}deg) scale(${sparkleProgress})`,
-            position: "relative",
-          }}
-        >
-          <Img
-            src="https://api.iconify.design/heroicons/sparkles-solid.svg?color=%23034F46&width=36"
-            style={{ width: 36, height: 36 }}
-          />
-          {/* Sparkle particles */}
-          {particles.map((p, i) => (
-            <div
-              key={i}
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                backgroundColor: i % 2 === 0 ? LAVENDER : TEAL,
-                opacity: p.opacity,
-                transform: `translate(${p.x - 3}px, ${p.y - 3}px) scale(${p.scale})`,
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Polished text bubble */}
-        <div
-          style={{
-            opacity: polishedProgress,
-            transform: `scale(${polishedScale})`,
+            overflow: "hidden",
+            maxHeight: showPolished ? 400 : 0,
+            opacity: showPolished ? 1 : 0,
             width: "100%",
             maxWidth: 800,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 0,
           }}
         >
+          {/* Transform icon */}
           <div
             style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 16,
+              opacity: arrowOpacity,
+              transform: `rotate(${arrowRotation}deg) scale(${sparkleProgress})`,
+              position: "relative",
+              marginTop: 20,
+              marginBottom: 20,
             }}
           >
-            {/* AI icon */}
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
-                backgroundColor: TEAL,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                marginTop: 4,
-              }}
-            >
-              <Img
-                src="https://api.iconify.design/heroicons/sparkles-solid.svg?color=%23FFFFEB&width=22"
-                style={{ width: 22, height: 22 }}
+            <Img
+              src="https://api.iconify.design/heroicons/sparkles-solid.svg?color=%23034F46&width=36"
+              style={{ width: 36, height: 36 }}
+            />
+            {particles.map((p, i) => (
+              <div
+                key={i}
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  backgroundColor: i % 2 === 0 ? LAVENDER : TEAL,
+                  opacity: p.opacity,
+                  transform: `translate(${p.x - 3}px, ${p.y - 3}px) scale(${p.scale})`,
+                }}
               />
-            </div>
+            ))}
+          </div>
 
-            {/* Polished bubble */}
+          {/* Polished text bubble */}
+          <div
+            style={{
+              opacity: polishedProgress,
+              transform: `scale(${polishedScale})`,
+              width: "100%",
+            }}
+          >
             <div
               style={{
-                backgroundColor: TEAL,
-                borderRadius: 20,
-                padding: "20px 28px",
-                boxShadow: "0 4px 30px rgba(3,79,70,0.2)",
-                flex: 1,
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 16,
               }}
             >
-              {frame >= transformFrame + 10 ? (
-                <TextAnimation
-                  startFrom={transformFrame + 10}
-                  createTimeline={({ textRef, tl, SplitText }) => {
-                    const split = new SplitText(textRef.current, {
-                      type: "words",
-                    });
-                    tl.from(split.words, {
-                      opacity: 0,
-                      y: 10,
-                      duration: 0.3,
-                      stagger: 0.04,
-                      ease: "power2.out",
-                    });
-                    return tl;
-                  }}
-                  style={{
-                    fontFamily: figtree,
-                    fontSize: 19,
-                    color: "#FFFFFF",
-                    lineHeight: 1.6,
-                    fontWeight: 500,
-                  }}
-                >
-                  {POLISHED_TEXT}
-                </TextAnimation>
-              ) : (
-                <div style={{ minHeight: 50 }} />
-              )}
               <div
                 style={{
-                  fontFamily: figtree,
-                  fontSize: 12,
-                  color: "rgba(255,255,255,0.55)",
-                  marginTop: 8,
-                  opacity: polishedProgress,
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: TEAL,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  marginTop: 4,
                 }}
               >
-                ✨ AI-polished
+                <Img
+                  src="https://api.iconify.design/heroicons/sparkles-solid.svg?color=%23FFFFEB&width=22"
+                  style={{ width: 22, height: 22 }}
+                />
+              </div>
+              <div
+                style={{
+                  backgroundColor: TEAL,
+                  borderRadius: 20,
+                  padding: "20px 28px",
+                  boxShadow: "0 4px 30px rgba(3,79,70,0.2)",
+                  flex: 1,
+                }}
+              >
+                {frame >= transformFrame + 10 ? (
+                  <TextAnimation
+                    startFrom={transformFrame + 10}
+                    createTimeline={({ textRef, tl, SplitText }) => {
+                      const split = new SplitText(textRef.current, {
+                        type: "words",
+                      });
+                      tl.from(split.words, {
+                        opacity: 0,
+                        y: 10,
+                        duration: 0.3,
+                        stagger: 0.04,
+                        ease: "power2.out",
+                      });
+                      return tl;
+                    }}
+                    style={{
+                      fontFamily: figtree,
+                      fontSize: 19,
+                      color: "#FFFFFF",
+                      lineHeight: 1.6,
+                      fontWeight: 500,
+                    }}
+                  >
+                    {POLISHED_TEXT}
+                  </TextAnimation>
+                ) : (
+                  <div style={{ minHeight: 50 }} />
+                )}
+                <div
+                  style={{
+                    fontFamily: figtree,
+                    fontSize: 12,
+                    color: "rgba(255,255,255,0.55)",
+                    marginTop: 8,
+                    opacity: polishedProgress,
+                  }}
+                >
+                  AI-polished
+                </div>
               </div>
             </div>
           </div>
